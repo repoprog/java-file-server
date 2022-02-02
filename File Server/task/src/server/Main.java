@@ -1,62 +1,39 @@
 package server;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+
 
 public class Main {
 
+    private static final String address = "127.0.0.1";
+    private static final int port = 23456;
+
     public static void main(String[] args) {
-        FileServer server = new FileServer();
-        boolean quit = false;
-        Scanner scanner = new Scanner(System.in);
-        while (!quit) {
-            String[] input = scanner.nextLine().split(" ");
-            String command = input[0];
-            String fileName = input.length == 2 ? input[1] : "";
-            switch (command.toLowerCase()) {
-                case "add" -> server.addFile(fileName);
-                case "get" -> server.getFile(fileName);
-                case "delete" -> server.deleteFile(fileName);
-                case "exit" -> quit = true;
-                default -> System.out.println("wrong command");
-            }
-        }
-    }
-}
+        System.out.println("Server started!");
 
-class FileServer {
-    private List<String> filesList;
+        try (ServerSocket server = new ServerSocket(port, 50, InetAddress.getByName(address))) {
+            boolean quit = false;
+            while (!quit)
+                try (Socket socket = server.accept();
+                     DataInputStream input = new DataInputStream(socket.getInputStream());
+                     DataOutputStream output = new DataOutputStream(socket.getOutputStream())
+                ) {
+                    String received = input.readUTF();
+                    String sent = "All files were sent!";
+                    System.out.println("Received: " + received +
+                            "\nSent: " + sent);
+                    output.writeUTF(sent);
 
-    public FileServer() {
-        this.filesList = new ArrayList<>();
-    }
+                    quit = true; // end connection after one receive/sent
+                }
 
-    public void addFile(String fileName) {
-        String regexp = "file([1-9]|10)";
-        if (fileName.matches(regexp) && !filesList.contains(fileName)) {
-            filesList.add(fileName);
-            System.out.println("The file " + fileName + " added successfully");
-        } else {
-            System.out.println("Cannot add the file " + fileName);
-        }
-    }
-
-    public void getFile(String fileName) {
-        if (filesList.contains(fileName)) {
-            filesList.indexOf(fileName);
-            System.out.println("The file " + fileName + " was sent");
-        } else {
-            System.out.println("The file " + fileName + " not found");
-        }
-    }
-
-    public void deleteFile(String fileName) {
-        if (filesList.contains(fileName)) {
-            filesList.remove(fileName);
-            System.out.println("The file " + fileName + " was deleted");
-        } else {
-            System.out.println("The file " + fileName + " not found");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
