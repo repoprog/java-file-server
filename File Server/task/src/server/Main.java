@@ -1,20 +1,16 @@
 package server;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 
 enum ResponseStatus {
     OK(200),
     FORBIDDEN(403),
     NOT_FOUND(404);
 
-    int code;
+    final int code;
 
     ResponseStatus(int code) {
         this.code = code;
@@ -26,28 +22,33 @@ enum ResponseStatus {
 }
 
 public class Main {
-
-    private static final String address = "127.0.0.1";
-    private static final int port = 23456;
-
     public static void main(String[] args) {
+        Server server = new Server();
+        server.start();
+    }
+}
+
+class Server {
+
+    private final String address = "127.0.0.1";
+    private final int port = 23456;
+
+    public void start() {
 
         System.out.println("Server started!");
-
         try (ServerSocket server = new ServerSocket(port, 50, InetAddress.getByName(address))) {
-            boolean quit = false;
-            while (!quit)
+
+            while (true)
                 try (Socket socket = server.accept();
                      DataInputStream input = new DataInputStream(socket.getInputStream());
                      DataOutputStream output = new DataOutputStream(socket.getOutputStream())
                 ) {
                     String received = input.readUTF();
-                    String sent = processRequest(received);
-                    System.out.println("Received: " + received +
-                            "\nSent: " + sent);
-                    output.writeUTF(sent);
-
-//                    quit = true; // end connection after one receive/sent
+                    if (received.startsWith("exit")) {
+                        break;
+                    }
+                    String respond = processRequest(received);
+                    output.writeUTF(respond);
                 }
 
         } catch (IOException e) {
@@ -55,56 +56,18 @@ public class Main {
         }
     }
 
-    static FileServer fileServer = new FileServer();
-
-    public static String processRequest(String received) {
+    public String processRequest(String received) {
         String[] rcvParts = received.split(" ");
         String reqType = rcvParts[0];
         String fileName = rcvParts[1];
         String fileContent = rcvParts.length == 3 ? rcvParts[2] : "";
-     return  switch (reqType) {
-            case "get" -> fileServer.getFile(fileName);
-            case "put" -> fileServer.addFile(fileName, fileContent);
-//            case "delete" -> fileServer.deleteFile(fileName);
-           default -> "bad request";
+        return switch (reqType) {
+            case "get" -> FileStorage.getFile(fileName);
+            case "put" -> FileStorage.addFile(fileName, fileContent);
+            case "delete" -> FileStorage.deleteFile(fileName);
+            default -> "bad request";
         };
     }
 }
 
-class FileServer {
-    private List<String> filesList;
-
-    public FileServer() {
-        this.filesList = new ArrayList<>();
-    }
-
-    public String getFile(String fileName) {
-        if (filesList.contains(fileName)) {
-            filesList.indexOf(fileName);
-           return ResponseStatus.OK.getCode() + " " + fileName;
-        } else {
-            return ResponseStatus.NOT_FOUND.getCode() + " " + fileName;
-        }
-    }
-
-    public String addFile(String fileName, String fileContent) {
-//        String regexp = "file([1-9]|10)"; fileName.matches(regexp) &&
-        if (!filesList.contains(fileName)) {
-            filesList.add(fileName);
-            return ResponseStatus.OK.getCode() + " " + fileName;
-        } else {
-          return   ResponseStatus.NOT_FOUND.getCode() + " " + fileName;
-        }
-    }
-
-
-    public void deleteFile(String fileName) {
-        if (filesList.contains(fileName)) {
-            filesList.remove(fileName);
-            System.out.println("The file " + fileName + " was deleted");
-        } else {
-            System.out.println("The file " + fileName + " not found");
-        }
-    }
-}
 
