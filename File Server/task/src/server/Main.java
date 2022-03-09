@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Arrays;
 
 enum ResponseStatus {
     OK(200),
@@ -58,13 +59,13 @@ class Server {
 
     public String processRequest(String received) {
         String[] rcvParts = received.split(" ");
-        String reqType = rcvParts[0];
-        String fileName = rcvParts[1];
-        String fileContent = rcvParts.length == 3 ? rcvParts[2] : "";
-        return switch (reqType) {
-            case "get" -> FileStorage.getFile(fileName);
-            case "put" -> FileStorage.addFile(fileName, fileContent);
-            case "delete" -> FileStorage.deleteFile(fileName);
+        System.out.println(Arrays.toString(rcvParts));
+        String requestType = rcvParts[0];
+        return switch (requestType) {
+            case "get" -> FileStorage.getFile(rcvParts[1], rcvParts[2]);
+            case "put" -> FileStorage.addFile(rcvParts[1], rcvParts[2]);
+            case "delete" -> FileStorage.deleteFile(rcvParts[1], rcvParts[2]);
+            case "show" -> FileStorage.showFiles();
             default -> "bad request";
         };
     }
