@@ -1,10 +1,6 @@
 package client;
 
-import server.FileStorage;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.Scanner;
@@ -16,13 +12,14 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         Client client = new Client();
 //        FileStorage.makeDirs();
-        System.out.println("System.out.println(Enter action (1 - get a file, 2 - create a file, 3 - delete a file):);\n");
+        System.out.println("System.out.println(Enter action " +
+                "(1 - get a file, 2 - save a file, 3 - delete a file):);\n");
         boolean quit = false;
         while (!quit) {
             String action = scanner.nextLine();
             switch (action) {
                 case "1" -> client.getFile();
-                case "2" -> client.createFile();
+                case "2" -> client.saveFile();
                 case "3" -> client.deleteFile();
                 case "4" -> client.showFiles();
                 case "exit" -> {
@@ -42,6 +39,7 @@ class Client {
     private final String PUT = "put";
     private final String GET = "get";
     private final String DELETE = "delete";
+    private static final String FILE_DRIVE_PATH = "C:\\Users\\repo\\Desktop\\";
 
 
     public void getFile() {
@@ -61,12 +59,21 @@ class Client {
         }
     }
 
-    public void createFile() {
-        System.out.println("Enter filename: ");
+    public void saveFile() {
+        System.out.println("Enter name of the file: ");
+        String savedFile = scanner.nextLine();
+        String[] savedParts = savedFile.split("\\.");
+        String fileFormat = "." + savedParts[1];
+        byte[] content = getFileAsByteArray(savedFile);
+        System.out.println("Enter name of the file to be saved on server: ");
         String fileName = scanner.nextLine();
-        System.out.println("Enter file content: ");
-        String content = scanner.nextLine();
+        fileName = fileName.isEmpty() ? generateFileName() + fileFormat : fileName;
         putRequest(fileName, content);
+    }
+
+
+    public String generateFileName() {
+        return "";
     }
 
     public void deleteFile() {
@@ -92,8 +99,10 @@ class Client {
              DataInputStream input = new DataInputStream(socket.getInputStream());
              DataOutputStream output = new DataOutputStream(socket.getOutputStream())
         ) {
-            String send = GET + " " + getterType + " " + file;
-            output.writeUTF(send);
+            String message = GET + " " + getterType + " " + file;
+            byte[] send = message.getBytes();
+            output.writeInt(send.length);
+            output.write(send);
             String received = input.readUTF();
             System.out.println("The request was sent.");
             if (received.startsWith("200")) {
@@ -108,19 +117,20 @@ class Client {
         }
     }
 
-    public void putRequest(String fileName, String content) {
+    public void putRequest(String fileName, byte[] content) {
 
         try (Socket socket = new Socket(InetAddress.getByName(address), port);
              DataInputStream input = new DataInputStream(socket.getInputStream());
              DataOutputStream output = new DataOutputStream(socket.getOutputStream())
         ) {
-            String send = PUT + " " + fileName + " " + content;
-            output.writeUTF(send);
+            String request = PUT + " " + fileName;
+            output.writeUTF(request);
+            output.writeInt(content.length);
+            output.write(content);
             String received = input.readUTF();
             System.out.println("The request was sent.");
             if (received.startsWith("200")) {
-                System.out.println("recieved: " + received);
-                String[] rcvParts= received.split(" ");
+                String[] rcvParts = received.split(" ");
                 System.out.println("The response says that file was saved! ID = " + rcvParts[1]);
             } else {
                 System.out.println("The response says that creating the file was forbidden!");
@@ -164,6 +174,22 @@ class Client {
         }
     }
 
+    public byte[] getFileAsByteArray(String fileName) {
+        byte[] fileAsBytes = new byte[0];
+        File file = new File(FILE_DRIVE_PATH + fileName);
+        try (FileInputStream fis = new FileInputStream(file)) {
+            fileAsBytes = fis.readAllBytes();
+        } catch (IOException e) {
+           e.printStackTrace();
+        }
+        return fileAsBytes;
+    }
+
+    public void saveFileOnDrive(byte fileContent) {
+
+    }
+
+
     public void showFiles() {
         try (Socket socket = new Socket(InetAddress.getByName(address), port);
              DataOutputStream output = new DataOutputStream(socket.getOutputStream())
@@ -174,5 +200,6 @@ class Client {
             e.printStackTrace();
         }
     }
+
 }
 

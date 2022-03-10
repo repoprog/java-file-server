@@ -45,10 +45,15 @@ class Server {
                      DataOutputStream output = new DataOutputStream(socket.getOutputStream())
                 ) {
                     String received = input.readUTF();
+                    byte[] content = new byte[0];
                     if (received.startsWith("exit")) {
                         break;
+                    } else if (received.startsWith("put")) {
+                        int length = input.readInt();
+                        content = new byte[length];
+                        input.readFully(content, 0, content.length);
                     }
-                    String respond = processRequest(received);
+                    String respond = processRequest(received, content);
                     output.writeUTF(respond);
                 }
 
@@ -57,13 +62,13 @@ class Server {
         }
     }
 
-    public String processRequest(String received) {
+    public String processRequest(String received, byte[] content) {
         String[] rcvParts = received.split(" ");
         System.out.println(Arrays.toString(rcvParts));
         String requestType = rcvParts[0];
         return switch (requestType) {
             case "get" -> FileStorage.getFile(rcvParts[1], rcvParts[2]);
-            case "put" -> FileStorage.addFile(rcvParts[1], rcvParts[2]);
+            case "put" -> FileStorage.saveFile(rcvParts[1], content);
             case "delete" -> FileStorage.deleteFile(rcvParts[1], rcvParts[2]);
             case "show" -> FileStorage.showFiles();
             default -> "bad request";
