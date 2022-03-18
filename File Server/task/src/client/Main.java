@@ -2,6 +2,9 @@ package client;
 
 import server.FileStorage;
 import java.util.Scanner;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class Main {
@@ -14,6 +17,7 @@ public class Main {
         System.out.println("System.out.println(Enter action " +
                 "(1 - get a file, 2 - save a file, 3 - delete a file):);\n");
         boolean quit = false;
+        ExecutorService executor = Executors.newFixedThreadPool(4);
         while (!quit) {
             String action = scanner.nextLine();
             switch (action) {
