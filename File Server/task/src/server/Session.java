@@ -21,6 +21,7 @@ public class Session extends Thread {
         this.savedContent = savedContent;
     }
 
+    @Override
     public void run() {
         try (
                 DataInputStream input = new DataInputStream(socket.getInputStream());
@@ -30,9 +31,7 @@ public class Session extends Thread {
                 String received = input.readUTF();
                 byte[] rcvContent = new byte[0];
                 if (received.startsWith("exit")) {
-                    socket.close();
                     server.close();
-                    server.accept();
                 } else if (received.startsWith("put")) {
                     int length = input.readInt();
                     rcvContent = new byte[length];

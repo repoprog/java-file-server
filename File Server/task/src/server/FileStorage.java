@@ -43,7 +43,7 @@ public class FileStorage {
             requiredFile = getFileNameById(Integer.parseInt(requiredFile));
         }
         try {
-           session.setSavedContent((Files.readAllBytes(Paths.get(ROOT + requiredFile))));
+            session.setSavedContent((Files.readAllBytes(Paths.get(ROOT + requiredFile))));
             return ResponseStatus.OK.getCode() + " ";
         } catch (IOException e) {
             return ResponseStatus.NOT_FOUND.getCode() + "";
@@ -54,10 +54,12 @@ public class FileStorage {
         File file = new File(ROOT + fileName);
         if (!file.exists()) {
             try (FileOutputStream fos = new FileOutputStream(file)) {
-                fos.write(fileContent);
-                ++fileId;
-                filesIndex.put(fileId, fileName);
+                    fos.write(fileContent);
+                synchronized (FileStorage.class) {
+                    ++fileId;
+                    filesIndex.put(fileId, fileName);
                 SerializationUtils.serialize(filesIndex, INDEX_PATH, FILE);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -80,7 +82,7 @@ public class FileStorage {
                 : ResponseStatus.NOT_FOUND.getCode() + "";
     }
 
-    public static String getFileNameById(int fileId) {
+    public synchronized static String getFileNameById(int fileId) {
         return filesIndex.getOrDefault(fileId, "no such file");
     }
 
